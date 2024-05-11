@@ -45,7 +45,9 @@
   display: table-cell;
 }
 
-input[type="text"] {
+.title-input input,
+.desc-input input,
+.table-container input {
   width: 100%;
   box-sizing: border-box;
 }
