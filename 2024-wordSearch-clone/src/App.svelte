@@ -13,7 +13,7 @@
     "/mypage": Mypage,
     "/login": Login,
     "/signup": Signup,
-    "/game": Game,
+    "/game/:gameId": Game,
   };
 </script>
 
