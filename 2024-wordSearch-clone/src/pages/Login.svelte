@@ -1,5 +1,40 @@
 <script>
   import Nav from "../components/Nav.svelte";
+  let email = "";
+  let password = "";
+
+  const BASE_URL = 'http://localhost:8000';
+
+  export async function handleSignin() {
+    console.log(`Email: ${email} Password: ${password}`);
+    try {
+      const userData = {
+        email: email,
+        password: password,
+      };
+      const response = await fetch(`${BASE_URL}/signin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+      if (response.status === 200) {
+        localStorage.setItem("accessToken", data.access_token);
+        console.log("로그인 성공!!")
+        window.location.hash = "/"
+      }
+    } catch (error) {
+      console.log("로그인 실패:", error.message);
+    }
+  }
+  function handleSignupKeyDown(event) {
+    if (event.key === "Enter") {
+      handleSignin();
+    }
+  }
 </script>
 
 <Nav location="login"></Nav>
@@ -9,14 +44,33 @@
     <div class="email-container">
       <label for="email">Email</label>
       <br />
-      <input id="email" type="email" placeholder="이메일을 작성해주세요"/>
+      <input
+        id="email"
+        bind:value={email}
+        type="email"
+        placeholder="이메일을 작성해주세요"
+      />
     </div>
     <div class="password-container">
       <label for="password">Password</label>
       <br />
-      <input id="password" type="password" placeholder="비밀번호를 작성해주세요"/>
+      <input
+        id="password"
+        bind:value={password}
+        type="password"
+        on:keydown={handleSignupKeyDown}
+        placeholder="비밀번호를 작성해주세요"
+      />
     </div>
-    <div class="signin-btn">Sign In</div>
+    <div
+      role="button"
+      tabindex="0"
+      class="signin-btn"
+      on:click={handleSignin}
+      on:keydown={handleSignupKeyDown}
+    >
+      Sign In
+    </div>
     <div class="other">------ Or continue with ------</div>
     <div class="google-container">
       <img src="/assets/google.svg" alt="" />
@@ -71,7 +125,7 @@
     padding: 5px; /* 내부 여백 추가 */
   }
 
-  ::placeholder{
+  ::placeholder {
     font-size: 10px;
   }
 </style>

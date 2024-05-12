@@ -1,5 +1,42 @@
 <script>
   import Nav from "../components/Nav.svelte";
+  let email = "";
+  let password = "";
+  let nickname = "";
+
+  const BASE_URL = "http://localhost:8000";
+
+  export async function handleSignup() {
+    console.log(`Email: ${email} Password: ${password} nickname: ${nickname}`);
+    try {
+      const userData = {
+        email: email,
+        password: password,
+        nickname: nickname,
+      };
+      const response = await fetch(`${BASE_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+      console.log("message:", data);
+
+      if (response.status === 201) {
+        window.location.hash = "/"
+      }
+    } catch (error) {
+      console.error("회원 가입 실패:", error.message);
+    }
+  }
+  function handleSignupKeyDown(event) {
+    if (event.key === "Enter") {
+      handleSignup();
+    }
+  }
 </script>
 
 <Nav location="signup"></Nav>
@@ -8,20 +45,44 @@
   <div class="signup-container">
     <div class="email-container">
       <label for="email">Email</label>
-      <br>
-      <input id="email" type="email" placeholder="이메일을 작성해주세요"/>
+      <br />
+      <input
+        id="email"
+        bind:value={email}
+        type="email"
+        placeholder="이메일을 작성해주세요"
+      />
     </div>
     <div class="password-container">
       <label for="password">Password</label>
-      <br>
-      <input id="password" type="password" placeholder="비밀번호를 작성해주세요"/>
+      <br />
+      <input
+        id="password"
+        bind:value={password}
+        type="password"
+        placeholder="비밀번호를 작성해주세요"
+      />
     </div>
     <div class="nickname-container">
       <label for="nickname">Nickname</label>
-      <br>
-      <input id="nickname" type="text" placeholder="닉네임을 작성해주세요"/>
+      <br />
+      <input
+        on:keydown={handleSignupKeyDown}
+        id="nickname"
+        bind:value={nickname}
+        type="text"
+        placeholder="닉네임을 작성해주세요"
+      />
     </div>
-    <div class="signup-btn">Sign Up</div>
+    <div
+      class="signup-btn"
+      role="button"
+      tabindex="0"
+      on:click={handleSignup}
+      on:keydown={handleSignupKeyDown}
+    >
+      Sign Up
+    </div>
   </div>
 </main>
 
@@ -52,19 +113,19 @@
     justify-content: center;
     align-items: center;
     border-radius: 10px;
-    background-color: #AAEB9F;
+    background-color: #aaeb9f;
     color: white;
     cursor: pointer;
     transition: background-color 0.3s; /* hover 효과 추가 */
   }
 
   .signup-btn:hover {
-    background-color: #85BD8B; /* hover 효과 색상 변경 */
+    background-color: #85bd8b; /* hover 효과 색상 변경 */
   }
 
   .email-container input,
   .password-container input,
-  .nickname-container input{
+  .nickname-container input {
     margin-top: 10px;
     width: 250px;
     height: 30px;
@@ -73,7 +134,7 @@
     padding: 5px; /* 내부 여백 추가 */
   }
 
-  ::placeholder{
+  ::placeholder {
     font-size: 10px;
   }
 </style>
