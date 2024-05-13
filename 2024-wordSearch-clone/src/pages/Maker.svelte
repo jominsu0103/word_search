@@ -11,7 +11,9 @@
   const BASE_URL = "http://localhost:8000";
 
   async function submitGameInfo() {
-    const filteredWords = words.filter((word) => word.trim() !== "");
+    const filteredWords = words
+    .map(word => word.trim().toUpperCase())
+    .filter(word => word !== "");
 
     // 최소 10개의 단어가 있는지 확인
     if (filteredWords.length < 10) {
