@@ -3,7 +3,24 @@
   let email = "";
   let password = "";
 
-  const BASE_URL = 'http://localhost:8000';
+  const BASE_URL = "http://localhost:8000";
+
+  const handleGoogleLogin = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/google/login`);
+      const data = await response.json();
+
+      // JSON 응답에서 URL 값 추출
+      const redirectUrl = data.authorization_url;
+      console.log("Received redirect URL:", redirectUrl);
+      console.log(data)
+
+      // // Redirect to the Google login page
+      window.location.href = data.url
+    } catch (error) {
+      console.error("Google login error:", error.message);
+    }
+  };
 
   export async function handleSignin() {
     console.log(`Email: ${email} Password: ${password}`);
@@ -23,8 +40,8 @@
       const data = await response.json();
       if (response.status === 200) {
         localStorage.setItem("accessToken", data.access_token);
-        console.log("로그인 성공!!")
-        window.location.hash = "/"
+        console.log("로그인 성공!!");
+        window.location.hash = "/";
       }
     } catch (error) {
       console.log("로그인 실패:", error.message);
@@ -72,7 +89,9 @@
       Sign In
     </div>
     <div class="other">------ Or continue with ------</div>
-    <div class="google-container">
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <div on:click={handleGoogleLogin} class="google-container">
       <img src="/assets/google.svg" alt="" />
     </div>
   </div>
@@ -127,5 +146,8 @@
 
   ::placeholder {
     font-size: 10px;
+  }
+  .google-container {
+    cursor: pointer;
   }
 </style>
