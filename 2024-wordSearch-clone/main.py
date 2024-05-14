@@ -1,20 +1,36 @@
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from typing import List
+from authlib.integrations.starlette_client import OAuth
+from starlette.requests import Request
+from starlette.config import Config
 import mysql.connector
 import hashlib
 import jwt
 import datetime
+import os
+import requests
+from dotenv import load_dotenv
 
-secret_key = "mysecretkey"
+config = Config('../2024-wordSearch-clone/.env')
+
+oauth = OAuth()
+
+mysecret_key = "mysecretkey"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
 
 # MySQL 연결 설정
 db = mysql.connector.connect(
     host="localhost", user="root", password="1111", database="word_search"
 )
-
 
 class Signup(BaseModel):
     nickname: str
@@ -54,7 +70,7 @@ app = FastAPI()
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*","http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "PUT"],
     allow_headers=["*"],
@@ -79,7 +95,7 @@ async def generateJWT(email, user_id):
     # 만료 시간 설정 (현재 시간에서 1주일 후로 설정)
     expiration_time = now_utc + datetime.timedelta(weeks=1)
     payload = {"email": email, "user_id": user_id, "exp": expiration_time}
-    token = jwt.encode(payload, secret_key, algorithm="HS256")
+    token = jwt.encode(payload, mysecret_key, algorithm="HS256")
     print("token", token)
     return token
 
@@ -112,10 +128,9 @@ async def hash_password(password: str):
 
 
 async def verify_token(token: str):
-    decode_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+    decode_token = jwt.decode(token, mysecret_key, algorithms=["HS256"])
 
     return decode_token["user_id"]
-
 
 @app.get("/ping")
 async def ping():
@@ -273,3 +288,46 @@ async def verify_word(data: VerifyWord):
     except mysql.connector.Error as err:
         return JSONResponse(
             content={"correct": False, "error": str(err)}, status_code=500)
+
+
+@app.get("/google/login")
+async def login_google():
+    return {
+        "url": f"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={google_client_id}&redirect_uri={google_redirect_uri}&scope=openid%20profile%20email&access_type=offline"
+    }
+
+# auth_google 함수 수정
+@app.get("/oauth/google")
+async def auth_google(code: str):
+    token_url = "https://accounts.google.com/o/oauth2/token"
+    data = {
+        "code": code,
+        "client_id": google_client_id,
+        "client_secret": google_client_secret,
+        "redirect_uri": google_redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    response = requests.post(token_url, data=data)
+    access_token = response.json().get("access_token")
+    user_info = requests.get("https://www.googleapis.com/oauth2/v1/userinfo", headers={"Authorization": f"Bearer {access_token}"})
+
+    print('응답:',response)
+    print('토큰:',access_token)
+    print('유저:',user_info)
+
+    if response.status_code == 200:  # 데이터를 성공적으로 가져왔을 때
+        user_data = user_info.json()
+        user_email = user_data.get("email")
+        user_name = user_data.get("name")
+        user_id = user_data.get("id")
+        print("User Email:", user_email)
+        print("User Name:", user_name)
+        print("User Data:", user_data)
+        jwt_payload = {"email": user_email, "user_id": user_id}  # 사용자 정보와 식별자를 포함한 payload
+        jwt_token = jwt.encode(jwt_payload, mysecret_key, algorithm="HS256")
+        js_code = f'localStorage.setItem("jwt_token", "{jwt_token}")'
+        # 클라이언트 주소로 리다이렉트
+        redirect_url = "http://localhost:5173?jwt_token=" + jwt_token
+        return RedirectResponse(url=redirect_url)
+    else:
+        return JSONResponse(content={"error": "Failed to fetch data"}, status_code=500)
